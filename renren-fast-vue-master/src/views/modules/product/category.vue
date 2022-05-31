@@ -12,7 +12,6 @@
           type="text"
           size="mini"
           v-if="node.level <= 2"
-          
           @click="() => append(data)"
         >
           Append
@@ -26,55 +25,63 @@
           Delete
         </el-button>
       </span>
+      <!-- 修改新增表单弹框 -->
+      <el-dialog
+        title="提示"
+        :visible.sync="dialogVisible"
+        width="30%"
+        :before-close="handleClose"
+      >
+        <el-form
+          :model="ruleForm"
+          status-icon
+          :rules="rules"
+          ref="ruleForm"
+          label-width="100px"
+          class="demo-ruleForm"
+        >
+          <el-form-item label="密码" prop="pass">
+            <el-input
+              type="password"
+              v-model="ruleForm.pass"
+              autocomplete="off"
+            ></el-input>
+          </el-form-item>
+          <el-form-item label="确认密码" prop="checkPass">
+            <el-input
+              type="password"
+              v-model="ruleForm.checkPass"
+              autocomplete="off"
+            >
+            </el-input>
+          </el-form-item>
+          <el-form-item label="年龄" prop="age">
+            <el-input v-model.number="ruleForm.age"></el-input>
+          </el-form-item>
+          <el-form-item label="菜单等级" prop="level">
+            <el-select v-model="select"  placeholder="请选择">
+              <el-option label="一级菜单" value="1"></el-option>
+              <el-option label="二级菜单" value="2"></el-option>
+              <el-option label="三级菜单" value="3"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="submitForm('ruleForm')"
+              >提交</el-button
+            >
+            <el-button @click="resetForm('ruleForm')">重置</el-button>
+          </el-form-item>
+          
+        </el-form>
+        <span slot="footer" class="dialog-footer">
+          <el-button @click="dialogVisible = false">取 消</el-button>
+          <el-button type="primary" @click="dialogVisible = false"
+            >确 定</el-button
+          >
+        </span>
+      </el-dialog>
     </span>
-    <el-dialog
-      title="提示"
-      :visible.sync="dialogVisible"
-      width="30%"
-      :before-close="handleClose"
-    >
-      <el-form
-      :model="ruleForm"
-      status-icon
-      :rules="rules"
-      ref="ruleForm"
-      label-width="100px"
-      class="demo-ruleForm"
-    >
-      <el-form-item label="密码" prop="pass">
-        <el-input
-          type="password"
-          v-model="ruleForm.pass"
-          autocomplete="off"
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="确认密码" prop="checkPass">
-        <el-input
-          type="password"
-          v-model="ruleForm.checkPass"
-          autocomplete="off"
-        ></el-input>
-      </el-form-item>
-      <el-form-item label="年龄" prop="age">
-        <el-input v-model.number="ruleForm.age"></el-input>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="submitForm('ruleForm')"
-          >提交</el-button
-        >
-        <el-button @click="resetForm('ruleForm')">重置</el-button>
-      </el-form-item>
-    </el-form>
-      <span slot="footer" class="dialog-footer">
-        <el-button @click="dialogVisible = false">取 消</el-button>
-        <el-button type="primary" @click="dialogVisible = false"
-          >确 定</el-button
-        >
-      </span>
-    </el-dialog>
-    
   </el-tree>
-  
 </template>
 
 <script>
@@ -124,22 +131,16 @@ export default {
         label: "name",
       },
       ruleForm: {
-        pass: '',
-        checkPass: '',
-        age: ''
+        pass: "",
+        checkPass: "",
+        age: "",
       },
       rules: {
-        pass: [
-          { validator: validatePass, trigger: 'blur' }
-        ],
-        checkPass: [
-          { validator: validatePass2, trigger: 'blur' }
-        ],
-        age: [
-          { validator: checkAge, trigger: 'blur' }
-        ]
+        pass: [{ validator: validatePass, trigger: "blur" }],
+        checkPass: [{ validator: validatePass2, trigger: "blur" }],
+        age: [{ validator: checkAge, trigger: "blur" }],
       },
-      // ruleForm: {
+      // menuForm: {
       //   catId: "",
       //   name: "",
       //   parentCid: "",
@@ -150,23 +151,28 @@ export default {
       //   productCount: "",
       // },
       // rules: {
-      //   pass: [{ validator: validatePass, trigger: "blur" }],
-      //   checkPass: [{ validator: validatePass2, trigger: "blur" }],
+      //   name: [{ validator: nut, trigger: "blur" }],
+      //   parentCid: [{ validator: validatePass2, trigger: "blur" }],
       //   age: [{ validator: checkAge, trigger: "blur" }],
+      //   catLevel: [{ validator: checkAge, trigger: "blur" }],
+      //   sort: [{ validator: checkAge, trigger: "blur" }],
+      //   icon: [{ validator: checkAge, trigger: "blur" }],
+      //   productUnit: [{ validator: checkAge, trigger: "blur" }],
+      //   productCount: [{ validator: checkAge, trigger: "blur" }],
       // },
       //修改分级菜单表单弹框开关
-      dialogVisible: false
+      dialogVisible: false,
     };
   },
 
   methods: {
     handleClose(done) {
-        this.$confirm('确认关闭？')
-          .then(_ => {
-            done();
-          })
-          .catch(_ => {});
-      },
+      this.$confirm("确认关闭？")
+        .then((_) => {
+          done();
+        })
+        .catch((_) => {});
+    },
     //新增分级菜单表单
     submitForm(formName) {
       this.$refs[formName].validate((valid) => {
@@ -204,7 +210,7 @@ export default {
         });
     },
     append(data) {
-      this.dialogVisible=true;
+      this.dialogVisible = true;
       // console.log("append", data);
     },
 
