@@ -9,6 +9,7 @@
       :allow-drop="allowDrop"
       node-key="catId"
       :default-expanded-keys="expandedKey"
+      @node-drop="handleDrop"
     >
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
@@ -49,9 +50,10 @@
         ref="category"
         label-width="100px"
         class="demo-category"
+        hide-required-asterisk
       >
         <el-form-item label="分类名称" prop="name">
-          <el-input type="text" v-model="category.name" auto-complete="off" ></el-input>
+          <el-input type="text" v-model="category.name"></el-input>
         </el-form-item>
         <el-form-item label="图标" prop="icon">
           <el-input type="text" v-model="category.icon"></el-input>
@@ -60,7 +62,9 @@
           <el-input type="text" v-model="category.productUnit"></el-input>
         </el-form-item>
         <el-form-item align="right">
-          <el-button type="primary" @click="submitCategory(category)">提交</el-button >
+          <el-button type="primary" @click="submitCategory(category)"
+            >提交</el-button
+          >
           <el-button @click="dialogClose()">取消</el-button>
         </el-form-item>
       </el-form>
@@ -71,14 +75,9 @@
 <script>
 export default {
   data() {
-    var checkname = (rule, value, callback) => {
-        if (!value) {
-          return callback(new Error('年龄不能为空'));
-        }else{
-          callback();
-        }
-    };
     return {
+      updateNodes: [],
+      max_level: 0,
       menu: [],
       defaultProps: {
         children: "children",
@@ -98,8 +97,9 @@ export default {
       },
       rules: {
         name: [
-            { validator: checkname, trigger: 'blur' }
-          ],
+          { required: true, message: "请输入分类名称", trigger: "blur" },
+          { min: 1, max: 10, message: "长度在 1 到 10个字符", trigger: "blur" },
+        ],
       },
       //分级菜单表单弹框开关
       dialogVisible: false,
@@ -112,10 +112,93 @@ export default {
   },
 
   methods: {
+    //监听拖住完成的方法
+    handleDrop(draggingNode, dropNode, dropType, ev) {
+      console.log("tree drop: ", dropNode.label, dropType, ev);
+      let pCid = 0;
+      let siblings = null;
+      this.expandedKey=[draggingNode.data.catId];
+      //当前被拖拽节点最新的父ID
+      if (dropType == "inner") {
+        pCid = dropNode.data.catId == undefined? 0 : dropNode.data.catId;
+        siblings = dropNode.childNodes;
+      } else {
+        pCid = dropNode.data.parentCid;
+        siblings = dropNode.parent.childNodes;
+      }
+      //当前被拖拽节点的顺序
+      for (let i = 0; i < siblings.length; i++) {
+        if (siblings[i].data.catId == draggingNode.data.catId) {
+          if (siblings[i].level != draggingNode.level) {
+              this.calDragLevelAdd1(draggingNode.data,siblings[i].level);
+              this.updateNodes.push({
+                catId: siblings[i].data.catId,
+                sort: i,
+                parentCid: pCid,
+                catLevel: siblings[i].level,
+              });
+            
+          }else{
+             this.updateNodes.push({
+              catId: siblings[i].data.catId,
+              sort: i,
+              parentCid: pCid,
+            });
+          }
+          
+        } else {
+          this.updateNodes.push({ catId: siblings[i].data.catId, sort: i });
+        }
+      }
+
+      //当前被拖拽节点的子节点
+      console.log("updateNodes",this.updateNodes);
+      this.$http({
+        url: this.$http.adornUrl("/product/category/list/drop"),
+        method: "post",
+        data: this.$http.adornData(this.updateNodes, false),
+      }).then(({ data }) => {
+        this.getMenus();
+        this.updateNodes=[];
+      });
+  
+    },
+    //找出节点当前所有的子节点并对level加1
+    calDragLevelAdd1(node,level) {
+      if (node.children != null && node.children.length > 0) {
+        for (let i = 0; i < node.children.length; i++) {
+          this.updateNodes.push({
+                catId: node.children[i].catId,
+                sort: i,
+                catLevel: level+1
+          });
+          this.calDragLevelAdd1(node.children[i],level+1);
+        }
+      }
+    },
+
+    // 找出节点最大level
+    calDragLevel(node) {
+      this.max_level = node.catLevel;
+      if (node.children != null && node.children.length > 0) {
+        for (let i = 0; i < node.children.length; i++) {
+          if (node.children[i].catLevel > this.max_level) {
+            this.max_level = node.children[i].catLevel;
+            this.calDragLevel(node.children[i]);
+          }
+        }
+      }
+    },
     //判断节点是否可拖拽
     allowDrop(draggingNode, dropNode, type) {
       console.log(draggingNode, dropNode, type);
-      return true;
+      this.calDragLevel(draggingNode.data);
+      let deep = this.max_level - draggingNode.data.catLevel + 1;
+      console.log("deep", deep, "max_level", this.max_level);
+      if (type == "inner") {
+        return deep + dropNode.level <= 3;
+      }
+      return deep + dropNode.parent.level <= 3;
     },
     handleClose(done) {
       this.$confirm("确认关闭？")
@@ -127,62 +210,65 @@ export default {
     //提交新增分级菜单表单
     submitCategory(category) {
       console.log(category);
-      this.$refs['category'].validate((valid) => {
-          if (valid) {
-            alert('submit!');
+      this.$refs["category"].validate((valid) => {
+        if (valid) {
+          if (this.dialogType == "add") {
+            this.$http({
+              url: this.$http.adornUrl("/product/category/save"),
+              method: "post",
+              data: this.$http.adornData(category, false),
+            })
+              .then(({ data }) => {
+                this.getMenus();
+                this.expandedKey = [category.parentCid];
+                this.$message({
+                  type: "success",
+                  message: "添加成功!",
+                });
+              })
+              .catch(() => {
+                this.$message({
+                  type: "error",
+                  message: "添加失败",
+                });
+              });
+            this.dialogVisible = false;
+            this.getMenus();
+            this.expandedKey = [category.parentCid];
           } else {
-            console.log('error submit!!');
-            return false;
+            let { catId, name, icon, productUnit } = this.category;
+            this.$http({
+              url: this.$http.adornUrl("/product/category/update"),
+              method: "post",
+              data: this.$http.adornData(
+                { catId, name, icon, productUnit },
+                false
+              ),
+            })
+              .then(({ data }) => {
+                this.getMenus();
+                this.expandedKey = [catId];
+                this.$message({
+                  type: "success",
+                  message: "修改成功!",
+                });
+              })
+              .catch(() => {
+                this.$message({
+                  type: "error",
+                  message: "修改失败",
+                });
+              });
+            this.dialogVisible = false;
+            this.getMenus();
+            this.expandedKey = [category.catId];
           }
-        });
-      // if (this.dialogType == "add") {
-      //   this.$http({
-      //     url: this.$http.adornUrl("/product/category/save"),
-      //     method: "post",
-      //     data: this.$http.adornData(category, false),
-      //   })
-      //     .then(({ data }) => {
-      //       this.getMenus();
-      //       this.expandedKey = [category.parentCid];
-      //       this.$message({
-      //         type: "success",
-      //         message: "添加成功!",
-      //       });
-      //     })
-      //     .catch(() => {
-      //       this.$message({
-      //         type: "error",
-      //         message: "添加失败",
-      //       });
-      //     });
-      //   this.dialogVisible = false;
-      //   this.getMenus();
-      //   this.expandedKey = [category.parentCid];
-      // } else {
-      //   let { catId, name, icon, productUnit } = this.category;
-      //   this.$http({
-      //     url: this.$http.adornUrl("/product/category/update"),
-      //     method: "post",
-      //     data: this.$http.adornData({ catId, name, icon, productUnit }, false),
-      //   })
-      //     .then(({ data }) => {
-      //       this.getMenus();
-      //       this.expandedKey = [catId];
-      //       this.$message({
-      //         type: "success",
-      //         message: "修改成功!",
-      //       });
-      //     })
-      //     .catch(() => {
-      //       this.$message({
-      //         type: "error",
-      //         message: "修改失败",
-      //       });
-      //     });
-      //   this.dialogVisible = false;
-      //   this.getMenus();
-      //   this.expandedKey = [category.catId];
-      // }
+        } else {
+          console.log("error submit!!");
+          return false;
+        }
+        this.resetForm(this.category);
+      });
     },
     //重置分级菜单表单
     dialogClose() {
@@ -190,9 +276,9 @@ export default {
       this.resetForm(this.category);
     },
     resetForm() {
-        console.log(this.$refs);
-        this.$refs['category'].resetFields();
-      },
+      console.log(this.$refs);
+      this.$refs["category"].resetFields();
+    },
     //删除确认提醒框
     open(node, data) {
       this.$confirm("此操作将永久删除该文件, 是否继续?", "提示", {
