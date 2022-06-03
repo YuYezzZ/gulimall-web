@@ -1,15 +1,25 @@
 <template>
   <div>
+    <el-switch
+      v-model="draggable"
+      active-color="#13ce66"
+      active-text="启用拖拽"
+      inactive-text="禁用拖拽"
+    >
+    </el-switch>
+    <el-button type="danger" @click="deleteByIds()">批量删除</el-button>
     <el-tree
       :data="menu"
       :props="defaultProps"
       :expand-on-click-node="false"
       :show-checkbox="true"
-      draggable
+      :draggable="draggable"
       :allow-drop="allowDrop"
       node-key="catId"
       :default-expanded-keys="expandedKey"
       @node-drop="handleDrop"
+      getCheckedNodes
+      ref="menu"
     >
       <span class="custom-tree-node" slot-scope="{ node, data }">
         <span>{{ node.label }}</span>
@@ -108,6 +118,8 @@ export default {
       //分级菜单表单弹框类型
       dialogType: "",
       dialogTitle: "",
+      //拖拽功能开关
+      draggable: false,
     };
   },
 
@@ -117,10 +129,10 @@ export default {
       console.log("tree drop: ", dropNode.label, dropType, ev);
       let pCid = 0;
       let siblings = null;
-      this.expandedKey=[draggingNode.data.catId];
+      this.expandedKey = [draggingNode.data.catId];
       //当前被拖拽节点最新的父ID
       if (dropType == "inner") {
-        pCid = dropNode.data.catId == undefined? 0 : dropNode.data.catId;
+        pCid = dropNode.data.catId == undefined ? 0 : dropNode.data.catId;
         siblings = dropNode.childNodes;
       } else {
         pCid = dropNode.data.parentCid;
@@ -130,49 +142,46 @@ export default {
       for (let i = 0; i < siblings.length; i++) {
         if (siblings[i].data.catId == draggingNode.data.catId) {
           if (siblings[i].level != draggingNode.level) {
-              this.calDragLevelAdd1(draggingNode.data,siblings[i].level);
-              this.updateNodes.push({
-                catId: siblings[i].data.catId,
-                sort: i,
-                parentCid: pCid,
-                catLevel: siblings[i].level,
-              });
-            
-          }else{
-             this.updateNodes.push({
+            this.calDragLevelAdd1(draggingNode.data, siblings[i].level);
+            this.updateNodes.push({
+              catId: siblings[i].data.catId,
+              sort: i,
+              parentCid: pCid,
+              catLevel: siblings[i].level,
+            });
+          } else {
+            this.updateNodes.push({
               catId: siblings[i].data.catId,
               sort: i,
               parentCid: pCid,
             });
           }
-          
         } else {
           this.updateNodes.push({ catId: siblings[i].data.catId, sort: i });
         }
       }
 
       //当前被拖拽节点的子节点
-      console.log("updateNodes",this.updateNodes);
+      console.log("updateNodes", this.updateNodes);
       this.$http({
         url: this.$http.adornUrl("/product/category/list/drop"),
         method: "post",
         data: this.$http.adornData(this.updateNodes, false),
       }).then(({ data }) => {
         this.getMenus();
-        this.updateNodes=[];
+        this.updateNodes = [];
       });
-  
     },
     //找出节点当前所有的子节点并对level加1
-    calDragLevelAdd1(node,level) {
+    calDragLevelAdd1(node, level) {
       if (node.children != null && node.children.length > 0) {
         for (let i = 0; i < node.children.length; i++) {
           this.updateNodes.push({
-                catId: node.children[i].catId,
-                sort: i,
-                catLevel: level+1
+            catId: node.children[i].catId,
+            sort: i,
+            catLevel: level + 1,
           });
-          this.calDragLevelAdd1(node.children[i],level+1);
+          this.calDragLevelAdd1(node.children[i], level + 1);
         }
       }
     },
@@ -330,9 +339,10 @@ export default {
       this.expandedKey = [data.catId];
       console.log("update", data);
     },
+    //删除
     remove(node, data) {
       console.log("remove", node, data);
-      var ids = [data.catId];
+      let ids = [data.catId];
       this.$http({
         url: this.$http.adornUrl("/product/category/delete"),
         method: "post",
@@ -343,7 +353,44 @@ export default {
         this.expandedKey = [node.parent.data.catId];
       });
     },
-
+    //批量删除
+    deleteByIds() {
+      this.$confirm("此操作将永久删除该文件, 是否继续?", "提示", {
+        confirmButtonText: "确定",
+        cancelButtonText: "取消",
+        type: "warning",
+      })
+        .then(() => {
+          let data = this.$refs.menu.getCheckedNodes();
+          console.log(data);
+          let ids = [];
+          for (const i in data) {
+            if (Object.hasOwnProperty.call(data, i)) {
+              ids.push(data[i].catId);
+              this.expandedKey.push(data[i].parentCid);
+            }
+          }
+          console.log(ids);
+          this.$http({
+            url: this.$http.adornUrl("/product/category/delete"),
+            method: "post",
+            data: this.$http.adornData(ids, false),
+          }).then(({ data }) => {
+            console.log("删除成功");
+            this.getMenus();
+          });
+          this.$message({
+            type: "success",
+            message: "删除成功!",
+          });
+        })
+        .catch(() => {
+          this.$message({
+            type: "info",
+            message: "已取消删除",
+          });
+        });
+    },
     getMenus() {
       this.$http({
         url: this.$http.adornUrl("/product/category/list/tree"),
