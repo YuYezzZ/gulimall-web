@@ -14,11 +14,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="getDataList()">查询</el-button>
-        <el-button
-          type="primary"
-          @click="addOrUpdateHandle()"
-          >新增</el-button
-        >
+        <el-button type="primary" @click="addOrUpdateHandle()">新增</el-button>
         <el-button
           type="danger"
           @click="deleteHandle()"
@@ -59,8 +55,15 @@
         prop="logo"
         header-align="center"
         align="center"
-        label="品牌logo地址"
+        label="品牌logo"
       >
+        <template slot-scope="scope">
+            <el-image
+              style="width: 100px; height: 50px"
+              :src="scope.row.logo"
+              fit="contain"
+            ></el-image>
+        </template>
       </el-table-column>
       <el-table-column
         prop="descript"
@@ -76,7 +79,7 @@
             active-color="#13ce66"
             :active-value="1"
             :inactive-value="0"
-            @change="changeShowStatus(scope.row.brandId,scope.row.showStatus)"
+            @change="changeShowStatus(scope.row.brandId, scope.row.showStatus)"
           >
           </el-switch>
         </template>
@@ -242,11 +245,27 @@ export default {
         });
       });
     },
-    changeShowStatus(id,showStatus){
-        this.$nextTick(() => {
-        this.$refs.addOrUpdate.init(id);
+    changeShowStatus(brandId, showStatus) {
+      this.$http({
+        url: this.$http.adornUrl(`/product/brand/update`),
+        method: "post",
+        data: this.$http.adornData({ brandId, showStatus }),
+      }).then(({ data }) => {
+        if (data && data.code === 0) {
+          this.$message({
+            message: "操作成功",
+            type: "success",
+            duration: 1500,
+            onClose: () => {
+              this.visible = false;
+              this.$emit("refreshDataList");
+            },
+          });
+        } else {
+          this.$message.error(data.msg);
+        }
       });
-    }
+    },
   },
 };
 </script>
