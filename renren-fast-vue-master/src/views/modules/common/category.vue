@@ -3,11 +3,9 @@
       :data="menu"
       :props="defaultProps"
       node-key="catId"
-      :default-expanded-keys="expandedKey"
+      @node-click="nodeclick"
+      ref="menu"
     >
-      <span  slot-scope="{ node}">
-        <span>{{ node.label }}</span>
-      </span>
     </el-tree>
 </template>
 
@@ -20,12 +18,15 @@ export default {
         children: "children",
         label: "name",
       },
-      //默认展开节点
-      expandedKey: [],
     };
   },
 
   methods: {
+    // 节点点击事件传给父类
+    nodeclick(data,node,component){
+      console.log("111",data,node,component);
+      this.$emit("tree-node-click",data,node,component)
+    },
     getMenus() {
       this.$http({
         url: this.$http.adornUrl("/product/category/list/tree"),
