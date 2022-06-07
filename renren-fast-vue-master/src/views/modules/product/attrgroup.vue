@@ -1,6 +1,8 @@
 <template>
   <el-row :gutter="20">
-    <el-col :span="6"><category @tree-node-click="treenodeclick"></category></el-col>
+    <el-col :span="6"
+      ><category @tree-node-click="treenodeclick"></category
+    ></el-col>
     <el-col :span="18"
       ><div class="mod-config">
         <el-form
@@ -17,9 +19,7 @@
           </el-form-item>
           <el-form-item>
             <el-button @click="getDataList()">查询</el-button>
-            <el-button
-              type="primary"
-              @click="addOrUpdateHandle()"
+            <el-button type="primary" @click="addOrUpdateHandle()"
               >新增</el-button
             >
             <el-button
@@ -133,14 +133,14 @@
 //这里可以导入其他文件（比如：组件，工具 js，第三方插件 js，json文件，图片文件等等）
 //例如：import 《组件名称》 from '《组件路径》';
 import Category from "../common/category.vue";
-import AddOrUpdate from './attrgroup-add-or-update';
+import AddOrUpdate from "./attrgroup-add-or-update";
 export default {
   //import 引入的组件需要注入到对象中才能使用
-  components: { Category , AddOrUpdate},
+  components: { Category, AddOrUpdate },
   props: {},
   data() {
     return {
-      catId:0,
+      catId: 0,
       dataForm: {
         key: "",
       },
@@ -158,11 +158,12 @@ export default {
   },
   methods: {
     //节点点击事件传入
-    treenodeclick(data,node,component){
-      if(node.children==null && data.children.length==0)
-        this.catId=data.catId;
+    treenodeclick(data, node, component) {
+      if (node.childNodes.length == 0) {
+        this.catId = data.catId;
         console.log(this.catId);
         this.getDataList();
+      }
     },
     // 获取数据列表
     getDataList() {

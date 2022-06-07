@@ -27,7 +27,14 @@
         <el-input v-model="dataForm.icon" placeholder="组图标"></el-input>
       </el-form-item>
       <el-form-item label="所属分类id" prop="catelogId">
-        <el-cascader-panel :options="options"></el-cascader-panel>
+        <el-cascader
+          v-model="dataForm.catelogIds"
+          placeholder="试试搜索：指南"
+          :options="options"
+          filterable
+          :props="defaultProps"
+          ref="options"
+        ></el-cascader>
       </el-form-item>
     </el-form>
     <span slot="footer" class="dialog-footer">
@@ -38,9 +45,17 @@
 </template>
 
 <script>
+import CategoryCascader from "../common/category-cascader.vue";
 export default {
+  components: { CategoryCascader },
   data() {
     return {
+      options: [],
+      defaultProps: {
+        value: "catId",
+        children: "children",
+        label: "name",
+      },
       visible: false,
       dataForm: {
         attrGroupId: 0,
@@ -48,6 +63,7 @@ export default {
         sort: "",
         descript: "",
         icon: "",
+        catelogIds: [],
         catelogId: "",
       },
       dataRule: {
@@ -66,11 +82,21 @@ export default {
     };
   },
   methods: {
+    getOptions() {
+      this.$http({
+        url: this.$http.adornUrl("/product/category/list/tree"),
+        method: "get",
+      }).then(({ data }) => {
+        this.options = data.data;
+        console.log("级联数据", this.options);
+      });
+    },
     init(id) {
       this.dataForm.attrGroupId = id || 0;
       this.visible = true;
       this.$nextTick(() => {
         this.$refs["dataForm"].resetFields();
+        this.dataForm.catelogIds =[];
         if (this.dataForm.attrGroupId) {
           this.$http({
             url: this.$http.adornUrl(
@@ -80,11 +106,12 @@ export default {
             params: this.$http.adornParams(),
           }).then(({ data }) => {
             if (data && data.code === 0) {
-              this.dataForm.attrGroupName = data.pmsAttrGroup.attrGroupName;
-              this.dataForm.sort = data.pmsAttrGroup.sort;
-              this.dataForm.descript = data.pmsAttrGroup.descript;
-              this.dataForm.icon = data.pmsAttrGroup.icon;
-              this.dataForm.catelogId = data.pmsAttrGroup.catelogId;
+              this.dataForm.attrGroupName = data.attrGroup.attrGroupName;
+              this.dataForm.sort = data.attrGroup.sort;
+              this.dataForm.descript = data.attrGroup.descript;
+              this.dataForm.icon = data.attrGroup.icon;
+              this.dataForm.catelogId = data.attrGroup.catelogId;
+              this.dataForm.catelogIds = data.catelogIds;
             }
           });
         }
@@ -92,6 +119,9 @@ export default {
     },
     // 表单提交
     dataFormSubmit() {
+      console.log(this.dataForm);
+      this.dataForm.catelogId =
+        this.dataForm.catelogIds[this.dataForm.catelogIds.length - 1];
       this.$refs["dataForm"].validate((valid) => {
         if (valid) {
           this.$http({
@@ -127,6 +157,9 @@ export default {
         }
       });
     },
+  },
+  created() {
+    this.getOptions();
   },
 };
 </script>
