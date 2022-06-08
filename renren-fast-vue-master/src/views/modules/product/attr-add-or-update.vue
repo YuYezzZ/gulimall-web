@@ -218,7 +218,7 @@ export default {
               this.dataForm.searchType = data.attr.searchType;
               this.dataForm.valueType = data.attr.valueType;
               this.dataForm.icon = data.attr.icon;
-              this.dataForm.valueSelect = data.attr.valueSelect.split(";");
+              this.dataForm.valueSelect = data.attr.valueSelect.spli1t(";");
               this.dataForm.attrType = data.attr.attrType;
               this.dataForm.enable = data.attr.enable;
               this.dataForm.catelogId = data.attr.catelogId;

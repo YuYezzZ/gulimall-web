@@ -97,6 +97,12 @@
               <el-button
                 type="text"
                 size="small"
+                @click="relationHandle(scope.row.attrGroupId)"
+                >关联</el-button
+              >
+              <el-button
+                type="text"
+                size="small"
                 @click="addOrUpdateHandle(scope.row.attrGroupId)"
                 >修改</el-button
               >
@@ -124,7 +130,13 @@
           v-if="addOrUpdateVisible"
           ref="addOrUpdate"
           @refreshDataList="getDataList"
-        ></add-or-update></div
+        ></add-or-update>
+        <!-- 修改关联关系 -->
+        <relation-update
+          v-if="relationVisible"
+          ref="relationUpdate"
+          @refreshData="getDataList"
+        ></relation-update></div
     ></el-col>
   </el-row>
 </template>
@@ -132,11 +144,12 @@
 <script>
 //这里可以导入其他文件（比如：组件，工具 js，第三方插件 js，json文件，图片文件等等）
 //例如：import 《组件名称》 from '《组件路径》';
-import Category from "../common/category.vue";
+import Category from "../common/category";
 import AddOrUpdate from "./attrgroup-add-or-update";
+import RelationUpdate from "./attr-group-relation";
 export default {
   //import 引入的组件需要注入到对象中才能使用
-  components: { Category, AddOrUpdate },
+  components: { Category, AddOrUpdate, RelationUpdate },
   props: {},
   data() {
     return {
@@ -151,12 +164,20 @@ export default {
       dataListLoading: false,
       dataListSelections: [],
       addOrUpdateVisible: false,
+      relationVisible: false,
     };
   },
   activated() {
     this.getDataList();
   },
   methods: {
+    //处理分组与属性的关联
+    relationHandle(groupId) {
+      this.relationVisible = true;
+      this.$nextTick(() => {
+        this.$refs.relationUpdate.init(groupId);
+      });
+    },
     //节点点击事件传入
     treenodeclick(data, node, component) {
       if (node.childNodes.length == 0) {
