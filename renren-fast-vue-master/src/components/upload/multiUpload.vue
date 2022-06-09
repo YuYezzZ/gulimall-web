@@ -1,8 +1,8 @@
 <template>
   <div>
     <el-upload
-      action="http://gulimall.oss-cn-shanghai.aliyuncs.com"
-      :data="dataObj"
+      action="http://upload-z2.qiniup.com"
+      :data="postData"
       list-type="picture-card"
       :file-list="fileList"
       :before-upload="beforeUpload"
@@ -35,15 +35,12 @@ export default {
   },
   data() {
     return {
-      dataObj: {
-        policy: "",
-        signature: "",
-        key: "",
-        ossaccessKeyId: "",
-        dir: "",
-        host: "",
-        uuid: ""
-      },
+      postData: {
+          token: '',
+          host:'',
+          key:'',
+          // callback:'',
+        },
       dialogVisible: false,
       dialogImageUrl: null
     };
@@ -77,30 +74,21 @@ export default {
     beforeUpload(file) {
       let _self = this;
       return new Promise((resolve, reject) => {
-        policy()
-          .then(response => {
-            console.log("这是什么${filename}");
-            _self.dataObj.policy = response.data.policy;
-            _self.dataObj.signature = response.data.signature;
-            _self.dataObj.ossaccessKeyId = response.data.accessid;
-            _self.dataObj.key = response.data.dir + "/"+getUUID()+"_${filename}";
-            _self.dataObj.dir = response.data.dir;
-            _self.dataObj.host = response.data.host;
-            resolve(true);
+          policy().then(response => {
+            _self.postData.token = response.data.token ;
+            _self.postData.host = response.data.host ;
+            _self.postData.key = getUUID()+suffix;
+            resolve(true)
+          }).catch(err => {
+            reject(false)
           })
-          .catch(err => {
-            console.log("出错了...",err)
-            reject(false);
-          });
-      });
+        })
     },
     handleUploadSuccess(res, file) {
-      this.fileList.push({
-        name: file.name,
-        // url: this.dataObj.host + "/" + this.dataObj.dir + "/" + file.name； 替换${filename}为真正的文件名
-        url: this.dataObj.host + "/" + this.dataObj.key.replace("${filename}",file.name)
-      });
-      this.emitInput(this.fileList);
+      this.showFileList = true;
+        this.fileList.pop();
+        this.fileList.push({name: file.name, url: this.postData.host + '/' + this.postData.key });
+        this.emitInput(this.fileList);
     },
     handleExceed(files, fileList) {
       this.$message({
