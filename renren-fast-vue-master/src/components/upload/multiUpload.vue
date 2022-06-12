@@ -72,6 +72,8 @@ export default {
       this.dialogImageUrl = file.url;
     },
     beforeUpload(file) {
+      let suffix ="."+ file.name.split(".")[file.name.split(".").length-1];
+        console.log("suffix",suffix);
       let _self = this;
       return new Promise((resolve, reject) => {
           policy().then(response => {
@@ -85,10 +87,8 @@ export default {
         })
     },
     handleUploadSuccess(res, file) {
-      this.showFileList = true;
-        this.fileList.pop();
-        this.fileList.push({name: file.name, url: this.postData.host + '/' + this.postData.key });
-        this.emitInput(this.fileList);
+      this.fileList.push({name: file.name, url: this.postData.host + '/' + this.postData.key });
+      this.emitInput(this.fileList);
     },
     handleExceed(files, fileList) {
       this.$message({
