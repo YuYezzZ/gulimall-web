@@ -701,7 +701,7 @@ export default {
       })
         .then(() => {
           this.$http({
-            url: this.$http.adornUrl("/product/spuinfo/save"),
+            url: this.$http.adornUrl("/product/spuinfo/save/all"),
             method: "post",
             data: this.$http.adornData(this.spu, false)
           }).then(({ data }) => {
